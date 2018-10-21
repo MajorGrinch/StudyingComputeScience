@@ -293,7 +293,7 @@ The ellipsis `...` is part of the Java code. It denotes that the method can rece
 6. Use polymorphism, not type information.
 7. Don't overuse reflection.
 
-## Chapter 6 Interface
+# Chapter 6 Interface
 
 An interface is a set of requirement for the classes that want to conform to the interface.
 
@@ -381,7 +381,7 @@ An anonymous inner class cannot have constructors because the constructors must 
 
 If you want to customize your own return type for some methods of your class, you could use `static inner class`.
 
-## Chapter 9
+# Chapter 9
 
 The "for each" loop works with any object that implements the `Iterable` inteface.
 
