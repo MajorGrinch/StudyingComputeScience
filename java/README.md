@@ -355,6 +355,10 @@ In a lambda expression, you can only reference vriables whose value doesn't chan
 It's illegal to declare a parameter or a local variable in the lambda that has the same name as a local variable.
 
 ## Inner class
+> Terminology: Nested classes are divided into two categories: static and non-static. Nested classes that are declared `static` are called static nested classes. Non-static nested classes are called inner classes. --**Oracle Java Documentation**
+
+> A inner class is also called a member class.
+
 An inner class is a class that is defined inside another class.
 1. Inner class methods can access the data from the scope where they are defined--including the private data.
 2. Inner classes can be hidden from other classes in the same package.
@@ -411,7 +415,6 @@ To make life easier for implementors, the library supplied a class `AbstractColl
 |LinkedHashMap| A map that remembers the order where entries were added |
 |WeakHashMap | A map with values that can be reclaimed by the garbage collector if they are not used elsewhere|
 |IdentityHashMap | A map with keys that are compared by ==, not `equals` |
-
 ![collections_hierachy](collections_hierachy.png)
 
 ### LinkedList
@@ -481,3 +484,18 @@ You can from subrange views for a number of collections. Any operations to the s
 The `Collections` class has methods that produce *unmodifiable views* of collections. If an attempt to modify the collection is detected, an exception is thrown and the collection remains untouched.
 
 The unmodifiable views does not make the collection itself immutable.
+
+# Chapter 14
+A thread terminates when its run method returns, or if an exception occurs that is not caught by in the thread. When the `interrupt` method is called on a thread that blocks on a call such as `slee` or `wait`, the blocking call is terminated by an `InterruptedException`. At the same time, there are blocking I/O calls that cannnot be interrupted.
+
++ When the thread tries to acquire an intrinsic object lock (but not a Lock in the java.util.concurrent library) that is currently hold by another thread, it becomes `blocked`.
++ When the thread waits for another thread to nofity the scheduler of a condition, it enters the `waiting` state. This happens by calling the `Object.wait` or `Thread.join` method, or by waiting for a Lock or Condition in the java.util.concurrent library.
++ Call methods that have a timeout parameter causes the thread to enter the `timed waiting` state. The state persists either until the timeout expires or the appropriate notification has been received.
+
+There is an essential difference between a thread that is waiting to acquire a lock and a thread that has called `await`. Once a thread calls the `await` method, it enters a *wait set* for that condition. The thread is not made runnable when the lock is available. Instead, it stays deactivated until another thread has called the `signalAll` method on the same condition.
+
+It is crucially important that some other thread calls the `signAll` method eventually. When a thread calls `await`, it has no way of reactivating itself. It puts its faith in the other threads. If none of them bother to reactivate the waiting thread, it will never run again which could lead to `deadlock`.
+
+Every object in Java has an intrinsic lock. If a method is declared with the `synchronized` keyword, the object's lock protects the entire method.
+
+Producer threads in a blocking queue insert items into the queue, and consumer threads retrieve them.
