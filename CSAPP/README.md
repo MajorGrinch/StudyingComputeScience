@@ -14,4 +14,9 @@ Most Intel-compatible machine operate exclusively in little-endian mode. And byt
 
 ## 2.4 Floating-Point
 
-The IEEE floating-point standard represents a number in a form V = \[ (-1)^{s} \]
+The IEEE floating-point standard represents a number in a form V = \( (-1)^{s} \times M \times 2^{E} \):
++ The *sign s* determines whether the number is negative or not.
++ The *significand M* is a fractional binary number that ranges either between 1 and 2 or between 0 and 1.
++ The *exponent E* weights the value by a power of 2
+
+In the single-precison floating-point format, fields s, exp and frac are 1, 8 and 23 bits each. In the double-precision floating-point format, fields s, exp and fraca re 1, 11 and 52 for each. Usually, the error in represent floating-point number could be raised by the limitation of frac or sometimes it's just binary cannot represent specific fractions in decimal.
