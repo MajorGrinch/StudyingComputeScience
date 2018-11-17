@@ -136,3 +136,22 @@ Another issue is how to deal with write misses. One approach, known as *write-al
 In summary, for write-through, when the write his the data in cache, it would update the cache block and immediately write that cache block into the next lower level. When the write miss, which means the destination block is not in the cache, it would directly write into the next lower level. But for write-back, when the write hits the data in cache, it would update the cache block and defer the update of next lower level as long as possible by writing to the next level only when that block is evicted from the cache. When the write miss, it would load that block from the next lower level into cache and then updates the cache block while defer its update to the next lower level as long as possible.
 
 As a rule, caches at lower levels of the memory hierarchy are more likely to use write-back instead of write-through because of the larger transfer times.
+
+### 6.4.6 Anatomy of a Real Cache Hierarchy
+A cache that holds instructions only is called an *i-cache*. A cache that holds program data only is called a *d-cache*. A cache holds both instructions and data is known as a *unified cache*. I-caches are typically read-only.
+
+### 6.4.7 Performance Impact of Cache Parameters
+
+#### Impact of Cache Size
+On the one hand, a larger cache will tend to increase the hit rate. On the other hand, it is always harder to make large memories run faster. As a result, larger caches tend to increase the hit time.
+
+#### Impact of Block Size
+On the one hand, larger blocks can help incrase the hit rate by exploiting any spatial locality  that might exist in a program. However, for a given cache size, larger blocks imply a smaller number of cache lines, which can hurt the hit rate in programs with more temporal locality than spatial locality. Larger blocks also have a negative impact on the miss penalty.
+
+#### Impact of Associativity
+The advantage of higher associativity is that it decreases the vulnerability of the cache to thrashing due to conflict misses. However, higher associativity is expensive to implement and hard to make fast. It requires more tag bits per line, additional LRU state bits per line, and additional control logic. Higher associativity can increase hit time, because of the increased complexity, and it can also increase the miss penalty because of the increased complexity of choosing a victim line.
+
+Traditionally, high-performance systems that pushed the clock rates would opt for smaller associativity for L1 caches and a higher degree of associativity for the lower levels, where the miss penalty is higher. For example, in Intel Core i7 system, the L1 and L2 caches are 8-way associative, and the L3 cache is 16-way.
+
+#### Impact of Write Strategy
+Write-throught is simpler to implement and the read misses are less expensive because they do not tirgger a memory write. On the other hand, write-back caches result in fewer transfers, which allows more bandwidth to memory for I/O devices that perform DMA. In general, caches further down the hierarchy are more likely to use write-back than write-through because the increasing transfer time.
