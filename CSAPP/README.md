@@ -4,13 +4,19 @@
 
 A machine-level program veiws memory as a very large array of bytes, referred to as virtual memory. Every byte of memory is identified by a unique number, known as address.
 
-### Addressing and Byte ordering
+### 2.1.3 Addressing and Byte ordering
 
 In virtually all machines, a multi-byte oject is stored as a contiguous sequence of bytes, with the address of the object given by the smallest address of the bytes used. For example , suppose a variable x of type int has address 0x100; Then the 4 bytes of x would be stored in memory locations 0x100, 0x101, 0x102, 0x103.
 
 There are two byte orderings. *little endian* is the least significant byte comes first, and *big endian* is the most significant byte comes first. Note that in the word 0x01234567 the high-order byte is 0x01, while the lower-order byte is 0x67.
 
 Most Intel-compatible machine operate exclusively in little-endian mode. And byte ordering becomes fixed once a particular operating system is chosen.
+
+### 2.1.9 Shift Operations in C
+
+Generally, machine support two forms of right shift:
++ Logical. A logical right shift fills the left end with k zeros.
++ Arithmetic. An arithmetic right shift fills the left end with k repetitions of the most significant bit.
 
 ## 2.4 Floating-Point
 
@@ -23,9 +29,115 @@ In the single-precison floating-point format, fields s, exp and frac are 1, 8 an
 
 # Chapter 3
 
+## 3.2 Program Encodings
+
+`linux> gcc -Og -o p p1.c p2.c`
+
+The command `gcc` indicates the gcc C compiler. The command-line option `-Og` instructs the compiler to apply a level of optimization that yields machine code that follows the overall structure of the original C code. In practice, higher levels of optimization (e.g., specified with the option `-O1` or `-O2`) are considered a better choice in terms of the resulting program performance.
+
+First, the C preprocessor expands the source code to include any files specified with `#include` commands and to expand any macros, specified with #define declarations. Second, the compiler generates assembly-code versions of the two source files having names p1.s and p2.s. Next, the assembler converts the assembly code into binary object-code files p1.o and p2.o. Object code is one form of machine code-it contains binary representations of all of the instructions, but the addresses of global values are not yet filled in. Finally, the linker merges these two object-code files along with code implementing library functions (e.g., printf) and generates the final executable code file p.
+
+### 3.2.1 Machine-level Code
+
+The format and behavior of a machine-level program is defined by the *instruction set architecture*, or ISA, defining the processor state, the format of the insturctions, and the effect each of these instructions will have on the state.
+
++ The program counter (commonly referred to as the PC, and called %rip in x86-64) indicates the address in memory of the next instruction to be executed.
++ The integer register file contains 16 named locations stroing 64-bit values.
++ The condition code registers hold status information about the most recently executed arithmetic or logical instruction. These are used to implement conditional changes in the control or data flow.
++ A set of vector registers can each hold one or more integer or floating-point values.
+
+Whereas C provides a model in which objects of different data type can be declared and allocated in memory, machine code view the memory as simply a large byte-addressable array. Aggregate data types in C such as arrays and structures are represented in machine code as contiguous collections of bytes. Even for scalar data types,  assembly code makes no distinctions between signed or unsigned integers, between different types of pointers, or even between pointers and integers.
+
+The porgram memory contains the executable machine code for the program, some information required by the operating system, a run-time stack for managing procedure calls and returns, and blocks of memory allocated by the user.
+
+`gcc -S` will cause gcc to run the compiler, generating an assembly file and go no further. If we use the `-c` command-line option, gcc will both compile and assemble the code, generating an object-code file.
+
+Generating the actual executable code requires running a linker on the ser of object-code files, one of which must contain a function main. One task for the linker is to match function calls with the locations of the executable code for those functions.
+
+> **Aside** ATT versus Intel assembly-code formats  
+We see the the Intel and ATT formats differ in the following ways:  
+> + The Intel code omits the size designation suffixes.
+> + The Intel code omits the % character in fromt of the register names
+> + Intel code has a different way of describing locations in memory-for example, QWORD PTR[rbx] rather than (%rbx).
+> + Instruction with multiple operands list them in the reverse order. `ATT: src, dst`. `Intel: dst, src`.
+
+# 3.3 Data Formats
+
+Due to tis origins as a 16-bit architecture that expanded into a 32-bit one, Intel use the term "word" to refer to a 16-bit data type. Based on this, they refer to 32-bit quantities as "double words," and 64-bit quantities as "quad words." Standard int values are stored as double words (32 bits). Pointers are stored as 8-byte quad words, as would be expected in a 64-bit machine. With x86-64, data type *long* is implemented with 64 bits, allowing a very wide range of values.
+
+
 ## 3.4 Accessing Information
 
-Stack pointer, %rsp, is used to indicate the end position in the run-time stack.
+An x86-64 central processing unit contains a set of 16 *general-purpose registers* stroing 64-bit values. These registers are used to store integer data as well as pointers.
+
+When these instructions have registers as destinations, two conventions arise for what happens to the remaining bytes in the register for instructions that generate less than 8 bytes: Those that generate 1- or 2-byte quantities leave the remaining bytes unchanged. **Those that generate 4-byte quantities set the upper 4 bytes of the register to zero.** The latter convention was adopted as part of the expansion from IA32 to x86-64.
+
+Stack pointer, `%rsp`, is used to indicate the end position in the run-time stack.
+
+### 3.4.1 Operand Specifiers
+
+Source vaules can be given as constants or read from registers or memory. Results can be stored in either registers or memory. Thus, the different operand possibilities can be classified into three types. The first type, *immediate*, is for constant values. In ATT-format assembly code, these are written with a `$` followed by an integer using standard C notation. The second type, *register*, denotes the contents of a register. The third type of operand is a *memory* reference, in which we access some memory location according to a computed address, often called the *effective address*.
+
+### 3.4.2 Data Movement Instructions
+
+x86-64 imposes the restriction that a move instruction cannot have both operands refer to memory locations. Copying a value from one memory location to anothe would requires load and store.
+
+When `movl` has a register as the destination, it will also set the high-order 4 bytes of register to 0. This arises from the convention adopted in x86-64 as metioned in 3.4.
+
+The `cltq` instruction has no operands--it always uses register %eax as its source and %rax as the destination for the sign-extended result. It therefore has the exact same effect as the instruction movslq %eax, %rax, but it has a more compact encoding.
+
+### 3.4.4 Pushing and Popping Stack Data
+
+The stack grons downward such that the top element has the lowest address of all stack elements. The stack pointer %rsp holds the address of the top stack element.
+
+Pushing a quad word value onto the stack involves first decrementing the stack pointer by 8 and then writing the value at the new top-of-stack address.
+
+## 3.5 Arithmetic and Logical Operations
+
+### 3.5.1 Load Effective Address
+
+The *load effective address* instruction `leaq` is actually a variant of the `movq` instruction. It has the form of an instruction that reads from memory to a register but it does not reference memory at all. It first operand appears to be a memory reference, but instead of reading from the designated location, the instruction copies the effective address to the destination. It can be used to compactly describe common arithmetic operations. For example, if register %rdx contains value `x`, then the instruction `leaq 7(%rdx, %rdx, 4), %rax` will set register `%rax` to 5x + 7. Compilers often find clever uses of `leaq` that have nothing to do with effective address computations. The destination operand must be a register.
+
+### 3.5.2 Unary and Binary Operations
+
+As with binary operations, the first operand can be either an immediate value, a register, or a memory location. The second can be either a register or a memory location. As with the mov instruction, the two operands cannot both be the memory location. Note that when the second operand is a memory location, the processor must read the value from memory, perform the operation, and then write the result back to memory.
+
+### 3.5.3 Shift operations
+
+The different shift instructions can specify the shift amount either as an immediate value or with the single-byte register %cl. With x86-64, a shift instruction operating on data values that are w bits long determines the shift amount from the low-order m bits of register %cl, where 2^m = w. The high-order bits are ignored. So, for example, when register %cl has hexadecimal value 0xFF, then instruction `salb` would shift by 7, while `salw` would shift by 15, `sall` would shift by 31, and `salq` would shift by 63. The destination operand of a shift operation can be either a register or a memory location.
+
+### 3.5.5 Special Arithmetic Operations
+
+The x86-64 instruction set includes two different "one-operand" multiply insturctions to compute the full 128-bit product of two 64-bit values, one for unsigned (mulq) and one for two's-complement (imulq) multiplication. For both of these instructions, one argument must be in register %rax, and the other is given as the instruction source operand. The product is then stored in register %rdx (high-order 64 bits) and %rax (low-order 64 bits).
+
+The signed division instruction `idivl` takes as its dividend the 128-bit quantity given as the instruction operand. The instruction stores the quotient in register %rax and the remainder in register %rdx.
+
+## 3.6 Control
+
+Machine code provides two basic low-level mechnisms for implementing conditional behavior: it tests data values and then alters either the control flow or the data flow based on the result of these tests.
+
+### 3.6.1 Condition Codes
+
+In addition to the integer registers, the CPU maintains a set of single-bit *condition code* registers describing attributes of the most recent arithmetic or logical operation. These registers can then be tested to perform conditional branches.
+
++ CF: Carry Flag. The most recent operations generated a carry out of the most significant bit. Used to detect overflow for unsigned operations.
++ ZF: Zero Flag. The most recent op yielded zero.
++ SF: Sign Flag. The most recent op yielded a negative value.
++ OF: Overflow Flag. The most recent op caused a two's-complement overflow--either negative or positive.
+
+The `leaq` instruction does not alter any condition codes, since it is intended to be used in address computation.
+
+### 3.6.6 Conditional Moves
+
+The conventional way to implement conditional operations is through a conditional transfer of control, where the program follows one execution path when a condition holds and nother when it does not. This mechanism is simple and general, but it can be very inefficient on modern processors.
+
+An alternate startegy is through a conditional transfer of data. This approach computes both outcomes of a conditional operations and then selects one based on whether or not the condition holds. This strategy makes sense only in restricted cases, but it can then be implemented by a simple conditional move instruction that is better matched to the performance characteristics of modern processors.
+
+With conditional jumps, when branch is hard to predict, it will perform bad. Mainly caused by pipelining and the cost of misprediction. While conditional moves are faster in average because the flow of contol does not depend on data. 
+
+
+## 3.7 Procedures
+
 
 
 # Chapter 6
@@ -155,3 +267,6 @@ Traditionally, high-performance systems that pushed the clock rates would opt fo
 
 #### Impact of Write Strategy
 Write-throught is simpler to implement and the read misses are less expensive because they do not tirgger a memory write. On the other hand, write-back caches result in fewer transfers, which allows more bandwidth to memory for I/O devices that perform DMA. In general, caches further down the hierarchy are more likely to use write-back than write-through because the increasing transfer time.
+
+# Chapter 8
+Modern systems react to these situations by making abrupt changes in the control flow. In general, we refer to these abrupt changes as *exceptional control flow(ECF)*. ECF occurs at all levels of a computer system. For example, at the hardware level, events detected by the hardware trigger abrupt control transfers to exception handlers. At the operating systems level, the kernel transfers control from one user process to another via context switches. At the application level, a process can send a *signal* to another process that abruptly transfers control to a signal handler in the recipient.
